@@ -39,8 +39,8 @@ try:
             print(start_idx/frames)
         t = (start_idx + np.arange(frames)) / 44100
         t = t.reshape(-1, 1)
-        acceleration = getAcceleration()/4
-        print(acceleration)
+        acceleration = getAcceleration()*-1
+        # May have to implement some filtering here as sensor drift quickly becomes a problem
         outdata[:] = acceleration * t
         start_idx += frames
 
