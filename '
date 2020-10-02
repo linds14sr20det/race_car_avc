@@ -4,12 +4,12 @@ from __future__ import print_function
 
 import sys
 import time
+import sounddevice as sd
 import struct
-import alsaaudio
 import smbus
 import numpy as np
 
-def getAxes():
+def getAcceleration():
     b = bus.read_i2c_block_data(0x53, 0x34, 2)
     y = int.from_bytes([b[0], b[1]], byteorder='little', signed=True)
     return y
@@ -23,23 +23,30 @@ if __name__ == '__main__':
     bus.write_byte_data(0x53, 0x31, 0x0B)
     #Configure power control (measure and don't sleep)
     bus.write_byte_data(0x53, 0x2D, 0x08)
-    #x-axis should remove gravity
+    #y-axis should remove gravity
     bus.write_byte_data(0x53, 0x1F, 0x41)
 
-    out = alsaaudio.PCM(alsaaudio.PCM_PLAYBACK, channels=1, 
-        rate=1000, 
-        periodsize=1, device='sysdefault:CARD=Headphones')
-
-    mixer = alsaaudio.Mixer('Headphone')
-    mixer.setvolume(100)
-    
-    dt = np.dtype('<i2')
-    data = np.zeros(10, dt)
+    samplerate = sd.query_devices(0, 'output')['default_samplerate']
     try:
-        while True:
-            acceleration = getAxes()
-            data.fill(acceleration)
-            out.write(bytes(data))
+
+        def callback(outdata, frames, time, status):
+            if status:
+                print(status, file=sys.stderr)
+            global start_idx
+            t = (start_idx + np.arange(frames)) / samplerate
+            t = t.reshape(-1, 1)
+            outdata[:] = 0.2 * np.sin(2 * np.pi * 500 * t)
+            start_idx += frames
+
+        with sd.OutputStream(0, channels=1, callback=callback,
+                         samplerate=samplerate):
+
+        dt = np.dtype('<i2')
+        data = np.zeros(1, dt)
+
+        #while True:
+            #acceleration = getAcceleration()
+            #data.fill(acceleration)
     except (KeyboardInterrupt, SystemExit):
         # Outputting feedback regarding the end of the file
         print('Exiting')
