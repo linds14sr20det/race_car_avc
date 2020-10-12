@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import sys
 import time
 import sounddevice as sd
@@ -15,6 +16,7 @@ sd.default.dtype='<i2'
 sd.default.blocksize=222
 sd.default.prime_output_buffers_using_stream_callback=True
 
+print(f"{time.time()}: Starting avc")
 
 def getAcceleration():
     accel = (ADC0832.getResult()-122)*-1
@@ -35,10 +37,11 @@ try:
         start_idx += frames
 
     with sd.OutputStream(channels=1, callback=callback, samplerate=44100):
-        input()
+        os.system('date > /tmp/avcswitch')
+        os.system('tail -f /tmp/avcswitch')
 
 except (KeyboardInterrupt, SystemExit):
     ADC0832.destroy()
-    print('Exiting')
+    print(f"{time.time()}: Exiting")
 
 
