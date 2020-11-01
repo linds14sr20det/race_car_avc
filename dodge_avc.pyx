@@ -11,14 +11,12 @@ import ADC0832
 
 ADC0832.setup()
 default_samplerate = 44100
+data_format = 'u1'
 
 print(f"{time.time()}: Starting avc")
 
 def getAcceleration():
-    accel = (ADC0832.getResult()-122)
-    #if -10 < accel < 10:
-    #    accel = 0
-    return accel
+    return ADC0832.getResult()
 
 try:
     print(sd.query_devices())
@@ -27,10 +25,10 @@ try:
     def callback(outdata, frames, time, status):
         if status:
             print(status, file=sys.stderr)
-        value = np.full((888,1), getAcceleration(), '<i1')
+        value = np.full((888,1), getAcceleration(), data_format)
         outdata[:] = value
 
-    with sd.OutputStream(samplerate=default_samplerate, device=0, blocksize = 888, channels=1, dtype='<i1', latency='low', callback=callback):
+    with sd.OutputStream(samplerate=default_samplerate, device=0, blocksize = 888, channels=1, dtype=data_format, latency='low', callback=callback):
         os.system('date > /tmp/avcswitch')
         os.system('tail -f /tmp/avcswitch')
 
