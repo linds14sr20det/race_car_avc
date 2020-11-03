@@ -5,12 +5,12 @@ from __future__ import print_function
 import os
 import sys
 import time
+import numpy as np
 import sounddevice as sd
-import soundfile as sf
 
 try:
-    data, fs = sf.read("raw_vibdata.csv", dtype='u1')
-    sd.play(data, fs, device=0)
+    data = np.loadtxt(fname="raw_vibdata.csv", dtype='u1', delimiter="\n")
+    sd.play(data, 1000, device=0)
     status = sd.wait()
 except (KeyboardInterrupt, SystemExit):
     ADC0832.destroy()
