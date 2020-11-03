@@ -15,7 +15,7 @@ def animate(i, ys):
     ys.append(Vr)
     ys = ys[-x_len:]
     line.set_ydata(ys)
-    f.write(str(Vr))
+    f.write(str(analogVal))
     f.write("\n")
     return line,
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
         line, = ax.plot(xs, ys)
         
-        ani = animation.FuncAnimation(fig, animate, fargs=(ys,), interval=50, blit=True)
+        ani = animation.FuncAnimation(fig, animate, fargs=(ys,), interval=10, blit=True)
         ani.save('animation.mp4')
         plt.show()
     except KeyboardInterrupt:
