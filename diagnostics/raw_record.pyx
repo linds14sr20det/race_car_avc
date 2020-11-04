@@ -1,3 +1,5 @@
+# cython: language_level=3, boundscheck=False
+
 import os
 import sys
 import time
