@@ -10,7 +10,7 @@ import sounddevice as sd
 
 try:
     data = np.loadtxt(fname="raw_vibdata.csv", dtype='u1', delimiter="\n")
-    sd.play(data, 250, device=0)
+    sd.play(data, 10000, device=0)
     status = sd.wait()
 except (KeyboardInterrupt, SystemExit):
     ADC0832.destroy()

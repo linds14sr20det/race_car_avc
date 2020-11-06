@@ -64,7 +64,10 @@ int main(void)
 
 	pinMode(ADC_CS,  OUTPUT);
 	pinMode(ADC_CLK, OUTPUT);
-
+	
+	struct timespec tim;
+   	tim.tv_sec = 0;
+   	tim.tv_nsec = 1000;
 	FILE *fptr;
 	fptr = fopen("output.txt","w");
 	clock_t t;
@@ -74,6 +77,7 @@ int main(void)
 
 		analogVal = get_ADC_Result();
 		fprintf(fptr, "%d\n", analogVal);
+		clock_nanosleep(CLOCK_REALTIME, 0, &tim, NULL);
 	}
 	printf("Elapsed time: %f", clock() - t);
 	fclose(fptr);
