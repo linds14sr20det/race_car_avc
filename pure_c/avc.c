@@ -1,85 +1,31 @@
-#include <wiringPi.h>
 #include <stdio.h>
-#include <math.h>
-#include <time.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-typedef unsigned char uchar;
-typedef unsigned int uint;
+#include "ABE_ADCDACPi.h"
 
-#define     ADC_CS    0
-#define     ADC_CLK   1
-#define     ADC_DIO   2
+int main(int argc, char **argv){
+	setvbuf (stdout, NULL, _IONBF, 0); // needed to print to the command line
 
-uchar get_ADC_Result(void)
-{
-	uchar i;
-	uchar dat1=0, dat2=0;
-
-	digitalWrite(ADC_CS, 0);
-	digitalWrite(ADC_CLK,0);
-	digitalWrite(ADC_DIO,1);	delayMicroseconds(2);
-	digitalWrite(ADC_CLK,1);	delayMicroseconds(2);
-
-	digitalWrite(ADC_CLK,0);
-	digitalWrite(ADC_DIO,1);    delayMicroseconds(2);
-	digitalWrite(ADC_CLK,1);	delayMicroseconds(2);
-
-	digitalWrite(ADC_CLK,0);
-	digitalWrite(ADC_DIO,0);	delayMicroseconds(2);
-	digitalWrite(ADC_CLK,1);
-	digitalWrite(ADC_DIO,1);    delayMicroseconds(2);
-	digitalWrite(ADC_CLK,0);
-	digitalWrite(ADC_DIO,1);    delayMicroseconds(2);
-
-	for(i=0;i<8;i++)
-	{
-		digitalWrite(ADC_CLK,1);	delayMicroseconds(2);
-		digitalWrite(ADC_CLK,0);    delayMicroseconds(2);
-
-		pinMode(ADC_DIO, INPUT);
-		dat1=dat1<<1 | digitalRead(ADC_DIO);
+	if (open_adc() != 1){ // open the ADC spi channel
+		printf("Failed to open the ADC.\n");	
+		exit(1); // if the SPI bus fails to open exit the program
 	}
 
-	for(i=0;i<8;i++)
-	{
-		dat2 = dat2 | ((uchar)(digitalRead(ADC_DIO))<<i);
-		digitalWrite(ADC_CLK,1); 	delayMicroseconds(2);
-		digitalWrite(ADC_CLK,0);    delayMicroseconds(2);
+	if (open_dac() != 1){ // open the DAC spi channel
+		printf("Failed to open the DAC.\n");
+		exit(1); // if the SPI bus fails to open exit the program
 	}
 
-	digitalWrite(ADC_CS,1);
+	set_dac_gain(2);
 
-	return(dat1==dat2) ? dat1 : 0;
-}
-
-int main(void)
-{
-	uchar analogVal;
-	double Vr, Rt, temp;
-
-	if(wiringPiSetup() == -1){ //when initialize wiring failed,print messageto screen
-		printf("setup wiringPi failed !");
-		return 1;
+	while (1){
+		// Set the output voltage of channel 2 to the input voltage of channel 1
+		set_dac_voltage(read_adc_voltage(1, 0), 2);
 	}
 
-	pinMode(ADC_CS,  OUTPUT);
-	pinMode(ADC_CLK, OUTPUT);
-	
-	struct timespec tim;
-   	tim.tv_sec = 0;
-   	tim.tv_nsec = 1000;
-	FILE *fptr;
-	fptr = fopen("output.txt","w");
-	clock_t t;
-	t = clock();
-	while(1){
-		pinMode(ADC_DIO, OUTPUT);
-
-		analogVal = get_ADC_Result();
-		fprintf(fptr, "%d\n", analogVal);
-		clock_nanosleep(CLOCK_REALTIME, 0, &tim, NULL);
-	}
-	printf("Elapsed time: %f", clock() - t);
-	fclose(fptr);
-	return 0;
+	(void)argc;
+	(void)argv;
+	return (0);
 }
