@@ -12,6 +12,7 @@
 #include <iostream>
 #include <chrono>
 #include <fstream>
+#include <math.h>
 
 #include "ABE_ADCDACPi.h"
 
@@ -43,7 +44,7 @@ int main(int argc, char **argv)
 		auto begin = std::chrono::high_resolution_clock::now();
 
 		voltage = adcdac.read_adc_voltage(1, 0);
-		auto butterworthed = butterworth(voltage, 6, 20000, 10);
+		double butterworthed = butterworth(voltage, 6, 20000, 10);
 		myfile << butterworthed << endl;
 
 		auto end = std::chrono::high_resolution_clock::now();
@@ -58,7 +59,7 @@ int main(int argc, char **argv)
 	return (0);
 }
 
-int butterworth(int input, int n, double s, double f)
+double butterworth(float input, int n, double s, double f)
 {
 	int i = n;
 	n = n / 2;
@@ -90,6 +91,5 @@ int butterworth(int input, int n, double s, double f)
 		w1[i] = w0[i];
 	}
 	return x;
-
-	return (0);
 }
+
