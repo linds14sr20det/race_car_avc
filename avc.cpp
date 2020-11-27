@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 		auto begin = std::chrono::high_resolution_clock::now();
 
 		voltage = adcdac.read_adc_voltage(1, 0);
-		double butterworthed = butterworth(voltage, 6, 20000, 10);
+		double butterworthed = butterworth(voltage, 6, 20000, 10000);
 		myfile << butterworthed << endl;
 
 		auto end = std::chrono::high_resolution_clock::now();
