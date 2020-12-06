@@ -1,6 +1,6 @@
 /*
  *
- *      compile with "g++ secondary_path.cpp ../ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o secondary_path"
+ *      compile with "g++ secondary_path.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -lpthread -o secondary_path"
  *      run with "./avc"
  */
 
@@ -16,24 +16,19 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
 #include <pthread.h>
 
-#include "DspFilters/Dsp.h"
 #include "ABE_ADCDACPi.h"
 
 using namespace std;
 using namespace ABElectronics_CPP_Libraries;
 
-void clearscreen()
-{
-	printf("\033[2J\033[1;1H");
-}
-
 void *GenerateNoise(void *threadid) {
 	ADCDACPi adcdac;
 
 	if (adcdac.open_dac() != 1) { // open the DAC spi channel
-		return(1); // if the SPI bus fails to open exit the program
+		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
 
 	adcdac.set_dac_gain(1); // set the dac gain to 1 which will give a voltage range of 0 to 2.048V
@@ -65,10 +60,13 @@ void *RecordNoise(void *threadid) {
 	ADCDACPi adcdac;
 
 	if (adcdac.open_adc() != 1) { // open the ADC spi channel
-		return (1); // if the SPI bus fails to open exit the program
+		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
 	
-	uint i = 0
+	uint i = 0;
+	ofstream tmpfile;
+	tmpfile.open("log.txt");
+	float voltage;
 	while (1) {
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sampe at 1000Hz.
@@ -76,7 +74,7 @@ void *RecordNoise(void *threadid) {
 		auto begin = std::chrono::high_resolution_clock::now();
 
 		voltage = adcdac.read_adc_voltage(1, 0);
-		myfile << voltage << endl;
+		tmpfile << voltage << endl;
 
 		auto end = std::chrono::high_resolution_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
@@ -88,17 +86,17 @@ void *RecordNoise(void *threadid) {
 			break;
 		}
 	}
-
-	myfile.close();
+	adcdac.close_adc();
+	tmpfile.close();
+	pthread_exit(NULL);
 }
 
 int main(int argc, char **argv) {
 	//This program spawns thread to keep things fast
-	pthread_t threads[2]l
-	int gn;
-	int rn;
+	pthread_t threads[2];
 
-	gn = pthread_create(&threads[0], NULL, GenerateNoise, (void *)0);
+	pthread_create(&threads[0], NULL, GenerateNoise, (void *)0);
+	pthread_exit(NULL);
 	(void)argc;
 	(void)argv;
 	return 0;
