@@ -13,7 +13,11 @@
 #include <chrono>
 #include <fstream>
 #include <math.h>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 
+#include "DspFilters/Dsp.h"
 #include "ABE_ADCDACPi.h"
 
 using namespace std;
@@ -22,39 +26,6 @@ using namespace ABElectronics_CPP_Libraries;
 void clearscreen()
 {
 	printf("\033[2J\033[1;1H");
-}
-
-double butterworth(double x, int n, double s, double f)
-{
-	int i = n;
-	n = n / 2;
-	double a = tan(M_PI * f / s);
-	double a2 = a * a;
-	double r;
-	double *A = (double *)malloc(n * sizeof(double));
-	double *d1 = (double *)malloc(n * sizeof(double));
-	double *d2 = (double *)malloc(n * sizeof(double));
-	double *w0 = (double *)calloc(n, sizeof(double));
-	double *w1 = (double *)calloc(n, sizeof(double));
-	double *w2 = (double *)calloc(n, sizeof(double));
-
-	for (i = 0; i < n; ++i)
-	{
-		r = sin(M_PI * (2.0 * i + 1.0) / (4.0 * n));
-		s = a2 + 2.0 * a * r + 1.0;
-		A[i] = a2 / s;
-		d1[i] = 2.0 * (1 - a2) / s;
-		d2[i] = -(a2 - 2.0 * a * r + 1.0) / s;
-	}
-
-	for (i = 0; i < n; ++i)
-	{
-		w0[i] = d1[i] * w1[i] + d2[i] * w2[i] + x;
-		x = A[i] * (w0[i] + 2.0 * w1[i] + w2[i]);
-		w2[i] = w1[i];
-		w1[i] = w0[i];
-	}
-	return x;
 }
 
 int main(int argc, char **argv)
@@ -68,6 +39,19 @@ int main(int argc, char **argv)
 		return (1); // if the SPI bus fails to open exit the program
 	}
 
+	int numSamples = 2000;
+	float* input[1];
+	input[0] = new float[numSamples];
+
+	Dsp::Filter* f = new Dsp::SmoothedFilterDesign<Dsp::Butterworth::Design::BandPass <4>, 1, Dsp::DirectFormII> (1024);
+    	Dsp::Params params;
+    	params[0] = 44100; // sample rate
+    	params[1] = 4; // order
+    	params[2] = 4000; // center frequency
+    	params[3] = 880; // band width
+    	f->setParams (params);
+    	f->process (numSamples, input);
+
 	ofstream myfile;
 	myfile.open("log.txt");
 	float voltage;
@@ -77,8 +61,7 @@ int main(int argc, char **argv)
 		auto begin = std::chrono::high_resolution_clock::now();
 
 		voltage = adcdac.read_adc_voltage(1, 0);
-		double butterworthed = butterworth(voltage, 6, 20000, 10000);
-		myfile << butterworthed << endl;
+		myfile << voltage << endl;
 
 		auto end = std::chrono::high_resolution_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
