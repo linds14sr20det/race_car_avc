@@ -27,7 +27,7 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void *GenerateNoise(void *threadid) {
+void *GenerateSineWave(void *threadid) {
 	ADCDACPi adcdac;
 
 	if (adcdac.open_dac() != 1) { // open the DAC spi channel
@@ -50,6 +50,28 @@ void *GenerateNoise(void *threadid) {
 			this_thread::sleep_until(next);
 		}
 		i = 0;
+	}
+
+	adcdac.close_dac();
+	pthread_exit(NULL);
+}
+
+void *GenerateNoise(void *threadid) {
+	ADCDACPi adcdac;
+
+	if (adcdac.open_dac() != 1) { // open the DAC spi channel
+		pthread_exit(NULL); // if the SPI bus fails to open exit the program
+	}
+
+	adcdac.set_dac_gain(2); // set the dac gain to 1 which will give a voltage range of 0 to 2.048V
+
+	nanoseconds full_delay = 200000ns;
+	while (1) {
+		auto next = Clock::now() + full_delay;
+		//We're going to produce totally random noise.
+		int voltage = (rand() % 4095) + 1;
+		adcdac.set_dac_raw(voltage, 1);
+		this_thread::sleep_until(next);
 	}
 
 	adcdac.close_dac();
@@ -93,6 +115,7 @@ int main(int argc, char **argv) {
 	//This program spawns thread to keep things fast
 	pthread_t threads[2];
 
+	//pthread_create(&threads[0], NULL, GenerateSineWave, (void *)0);
 	pthread_create(&threads[0], NULL, GenerateNoise, (void *)0);
 	pthread_create(&threads[1], NULL, RecordNoise, (void *)1);
 
