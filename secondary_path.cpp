@@ -66,11 +66,13 @@ void *GenerateNoise(void *threadid) {
 	adcdac.set_dac_gain(2); // set the dac gain to 1 which will give a voltage range of 0 to 2.048V
 
 	nanoseconds full_delay = 200000ns;
+	std::default_random_engine generator;
+  	std::normal_distribution<double> distribution(2047.0, 680.0);
+
 	while (1) {
 		auto next = Clock::now() + full_delay;
 		//We're going to produce totally random noise.
-		int voltage = (rand() % 4095) + 1;
-		adcdac.set_dac_raw(voltage, 1);
+		adcdac.set_dac_raw(int(distribution(generator)), 1);
 		this_thread::sleep_until(next);
 	}
 
