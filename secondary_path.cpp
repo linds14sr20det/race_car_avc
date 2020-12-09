@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <thread>
 #include <pthread.h>
+#include <random>
 
 #include "ABE_ADCDACPi.h"
 
