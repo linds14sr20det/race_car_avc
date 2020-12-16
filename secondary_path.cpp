@@ -68,12 +68,19 @@ void *GenerateNoise(void *threadid) {
 
 	nanoseconds full_delay = 200000ns;
 	std::default_random_engine generator;
-  	std::normal_distribution<double> distribution(2047.0, 680.0);
+  	std::normal_distribution<double> distribution(2047.0, 1024.0);
 
 	while (1) {
 		auto next = Clock::now() + full_delay;
+		int rando = int(distribution(generator));
+		if (rando > 2047) {
+			rando = 2047;
+		}
+		if (rando < 0) {
+			rando = 0;
+		}
 		//We're going to produce totally random noise.
-		adcdac.set_dac_raw(int(distribution(generator)), 1);
+		adcdac.set_dac_raw(rando, 1);
 		this_thread::sleep_until(next);
 	}
 
