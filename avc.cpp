@@ -1,6 +1,6 @@
 /*
  *
- *      compile with "g++ avc.cpp ../ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o avc"
+ *      compile with "g++ secondary_path.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -lpthread -o secondary_path"
  *      run with "./avc"
  */
 
@@ -16,62 +16,59 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
+#include <thread>
+#include <pthread.h>
+#include <random>
 
-#include "DspFilters/Dsp.h"
 #include "ABE_ADCDACPi.h"
 
 using namespace std;
 using namespace ABElectronics_CPP_Libraries;
+using Clock = std::chrono::system_clock;
+using nanoseconds = std::chrono::nanoseconds;
 
-void clearscreen()
-{
-	printf("\033[2J\033[1;1H");
-}
-
-int main(int argc, char **argv)
-{
-	setvbuf(stdout, NULL, _IONBF, 0); // needed to print to the command line
-
+void *ActiveVibrationControl(void *threadid) {
 	ADCDACPi adcdac;
 
-	if (adcdac.open_adc() != 1)
-	{				// open the ADC spi channel
-		return (1); // if the SPI bus fails to open exit the program
+	if (adcdac.open_adc() != 1) { // open the ADC spi channel
+		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
-
-	int numSamples = 2000;
-	float* input[1];
-	input[0] = new float[numSamples];
-
-	Dsp::Filter* f = new Dsp::SmoothedFilterDesign<Dsp::Butterworth::Design::BandPass <4>, 1, Dsp::DirectFormII> (1024);
-    	Dsp::Params params;
-    	params[0] = 44100; // sample rate
-    	params[1] = 4; // order
-    	params[2] = 4000; // center frequency
-    	params[3] = 880; // band width
-    	f->setParams (params);
-    	f->process (numSamples, input);
-
-	ofstream myfile;
-	myfile.open("log.txt");
+	if (adcdac.open_dac() != 1) { // open the DAC spi channel
+                pthread_exit(NULL); // if the SPI bus fails to open exit the program
+        }
+	
+	adcdac.set_dac_gain(2);	// set the DAC gain to 2 which will give a max voltage of 3.3V
+	
 	float voltage;
-
-	while (1)
-	{
-		auto begin = std::chrono::high_resolution_clock::now();
+	nanoseconds full_delay = 1000000ns;
+	while (1) {
+		//We need to have a steady sample rate so we can draw conclusions about the time series
+		//We are going to sampe at 1000Hz.
+		//1/1000=0.001=1000 microseconds 
+		auto next = Clock::now() + full_delay;
 
 		voltage = adcdac.read_adc_voltage(1, 0);
-		myfile << voltage << endl;
 
-		auto end = std::chrono::high_resolution_clock::now();
-		auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-		auto elapsed_micro = elapsed.count() * 1e-3;
-		usleep(1000 - elapsed_micro); // sleep 1000 microseconds
+		adcdac.set_dac_voltage(voltage, 1);
+
+
+		this_thread::sleep_until(next);
 	}
+	adcdac.close_adc();
+	adcdac.close_dac();
+	pthread_exit(NULL);
+}
 
-	myfile.close();
+int main(int argc, char **argv) {
+	//This program spawns thread to keep things fast
+	pthread_t threads[1];
+
+	pthread_create(&threads[0], NULL, ActiveVibrationControl, (void *)1);
+
+	pthread_exit(NULL);
 	(void)argc;
 	(void)argv;
-	return (0);
+	return 0;
 }
 
