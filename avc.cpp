@@ -96,6 +96,9 @@ int main(int argc, char **argv)
 
 	adcdac.set_dac_gain(2); // set the DAC gain to 2 which will give a max voltage of 3.3V
 
+	ofstream tmpfile;
+	tmpfile.open("log.txt");
+
 	nanoseconds full_delay = 1000000ns;
 
 	int Xiv;
@@ -116,6 +119,7 @@ int main(int argc, char **argv)
 
 	float Xhx[16] = {0}; // the state of the filtered x(k)
 	float mu = 0.01;
+	tmpfile << "Input Raw, Input Filtered, ,Output" << endl;
 
 	while (1)
 	{
@@ -125,7 +129,7 @@ int main(int argc, char **argv)
 		auto next = Clock::now() + full_delay;
 
 		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Ydiv = filter(X);				   // filter the voltage 
+		Ydiv = filter(Xiv);				   // filter the voltage 
 		X = convert_raw_to_voltage(Xiv);
 		Yd = convert_raw_to_voltage(Ydiv);
 
@@ -136,6 +140,7 @@ int main(int argc, char **argv)
 		float Cy = dot_product(Cx, Cw, 16);
 
 		adcdac.set_dac_voltage(Cy, 1); // output anti vibration
+		tmpfile << X << "," << Yd << "," << Cy << endl;
 
 		shift_right(Sx, 7);
 		Sx[0] = Cy;							 // propagate to secondary path
@@ -151,6 +156,7 @@ int main(int argc, char **argv)
 
 		this_thread::sleep_until(next);
 	}
+	tmpfile.close();
 	adcdac.close_adc();
 	adcdac.close_dac();
 
