@@ -37,9 +37,9 @@ void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
 
 void shift_right(float values[], int size)
 {
-	for (int i = 0; i < size - 1; i++)
+	for (int i = size - 1; i > -1; i--)
 	{
-		values[i + 1] = values[i];
+		values[i] = values[i-1];
 	}
 }
 
@@ -76,6 +76,11 @@ private:
 	sum_t sum = 0;
 };
 
+float convert_raw_to_voltage(int raw) 
+{
+	return float(raw) * 3.3 / 4095;
+}
+
 int main(int argc, char **argv)
 {
 	ADCDACPi adcdac;
@@ -93,8 +98,10 @@ int main(int argc, char **argv)
 
 	nanoseconds full_delay = 1000000ns;
 
-	int X;	// input voltage data buffer
-	int Yd; // data buffer for the filtered voltage
+	int Xiv;
+	int Ydiv;
+	float X;	// input voltage data buffer
+	float Yd; // data buffer for the filtered voltage
 	static SMA<20> filter;
 
 	// float Pw[7] = {0.01, 0.25, 0.5, 1, 0.5, 0.25, 0.01};
@@ -117,15 +124,18 @@ int main(int argc, char **argv)
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
-		X = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Yd = filter(X);				   // filter the voltage
+		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
+		Ydiv = filter(X);				   // filter the voltage 
+		X = convert_raw_to_voltage(Xiv);
+		Yd = convert_raw_to_voltage(Ydiv);
 
 		//do LMS
 		shift_right(Cx, 16); // update the controller state
 		Cx[0] = X;
+		
 		float Cy = dot_product(Cx, Cw, 16);
-		adcdac.set_dac_raw(Cy, 1); // output anti vibration
-		cout << Cy;
+
+		adcdac.set_dac_voltage(Cy, 1); // output anti vibration
 
 		shift_right(Sx, 7);
 		Sx[0] = Cy;							 // propagate to secondary path
