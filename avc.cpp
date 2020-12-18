@@ -1,6 +1,6 @@
 /*
  *
- *      compile with "g++ avc.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -lpthread -o avc"
+ *      compile with "g++ avc.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o avc"
  *      run with "./avc"
  */
 
@@ -18,7 +18,6 @@
 #include <iomanip>
 #include <cstdlib>
 #include <thread>
-#include <pthread.h>
 #include <random>
 
 #include "ABE_ADCDACPi.h"
@@ -28,7 +27,7 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void *ActiveVibrationControl(void *threadid)
+void ActiveVibrationControl()
 {
 	ADCDACPi adcdac;
 
@@ -78,6 +77,7 @@ void *ActiveVibrationControl(void *threadid)
 		Cx[0] = X;
 		float Cy = dot_product(Cx, Cw, 16);
 		adcdac.set_dac_raw(Cy, 1); // output anti vibration
+		cout << Cy;
 
 		shift_right(Sx, 7);
 		Sx[0] = Cy;							 // propagate to secondary path
@@ -95,7 +95,6 @@ void *ActiveVibrationControl(void *threadid)
 	}
 	adcdac.close_adc();
 	adcdac.close_dac();
-	pthread_exit(NULL);
 }
 
 void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
@@ -149,12 +148,7 @@ private:
 
 int main(int argc, char **argv)
 {
-	//This program spawns thread to keep things fast
-	pthread_t threads[1];
-
-	pthread_create(&threads[0], NULL, ActiveVibrationControl, (void *)1);
-
-	pthread_exit(NULL);
+	ActiveVibrationControl();
 	(void)argc;
 	(void)argv;
 	return 0;
