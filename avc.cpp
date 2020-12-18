@@ -27,7 +27,56 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void ActiveVibrationControl()
+void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
+{
+	for (int i = 0; i < 16; i++)
+	{
+		Cw[i] = Cw[i] + Xhx[i] * mu * error;
+	}
+}
+
+void shift_right(float values[], int size)
+{
+	for (int i = 0; i < size - 1; i++)
+	{
+		values[i + 1] = values[i];
+	}
+}
+
+float dot_product(float vector_a[], float vector_b[], int size)
+{
+	float product = 0;
+	for (int i = 0; i < size; i++)
+		product = product + vector_a[i] * vector_b[i];
+	return product;
+}
+
+template <uint8_t N, class input_t = uint16_t, class sum_t = uint32_t>
+class SMA
+{
+public:
+	input_t operator()(input_t input)
+	{
+		sum -= previousInputs[index];
+		sum += input;
+		previousInputs[index] = input;
+		if (++index == N)
+			index = 0;
+		return (sum + (N / 2)) / N;
+	}
+
+	static_assert(
+		sum_t(0) < sum_t(-1), // Check that `sum_t` is an unsigned type
+		"Error: sum data type should be an unsigned integer, otherwise, "
+		"the rounding operation in the return statement is invalid.");
+
+private:
+	uint8_t index = 0;
+	input_t previousInputs[N] = {};
+	sum_t sum = 0;
+};
+
+int main(int argc, char **argv)
 {
 	ADCDACPi adcdac;
 
@@ -95,60 +144,7 @@ void ActiveVibrationControl()
 	}
 	adcdac.close_adc();
 	adcdac.close_dac();
-}
 
-void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
-{
-	for (int i = 0; i < 16; i++)
-	{
-		Cw[i] = Cw[i] + Xhx[i] * mu * error;
-	}
-}
-
-void shift_right(float values[], int size)
-{
-	for (int i = 0; i < size - 1; i++)
-	{
-		values[i + 1] = values[i];
-	}
-}
-
-float dot_product(float vector_a[], float vector_b[], int size)
-{
-	float product = 0;
-	for (int i = 0; i < size; i++)
-		product = product + vector_a[i] * vector_b[i];
-	return product;
-}
-
-template <uint8_t N, class input_t = uint16_t, class sum_t = uint32_t>
-class SMA
-{
-public:
-	input_t operator()(input_t input)
-	{
-		sum -= previousInputs[index];
-		sum += input;
-		previousInputs[index] = input;
-		if (++index == N)
-			index = 0;
-		return (sum + (N / 2)) / N;
-	}
-
-	static_assert(
-		sum_t(0) < sum_t(-1), // Check that `sum_t` is an unsigned type
-		"Error: sum data type should be an unsigned integer, otherwise, "
-		"the rounding operation in the return statement is invalid.");
-
-private:
-	uint8_t index = 0;
-	input_t previousInputs[N] = {};
-	sum_t sum = 0;
-};
-
-int main(int argc, char **argv)
-{
-	ActiveVibrationControl();
 	(void)argc;
 	(void)argv;
 	return 0;
