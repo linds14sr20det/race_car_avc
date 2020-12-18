@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	int Yd; // data buffer for the filtered voltage
 	static SMA<20> filter;
 
-	float Pw[7] = {0.01, 0.25, 0.5, 1, 0.5, 0.25, 0.01};
+	// float Pw[7] = {0.01, 0.25, 0.5, 1, 0.5, 0.25, 0.01};
 	float Sw[7] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
 	float Shx[16] = {0.6011, 1.2314, 1.4398, 1.0205, -0.0293, -0.4486, 0.1817, -0.4486, -1.2874, -1.7068, -1.2874, -1.2874, -1.4984, 0.1817, 0.3927, 1.4398};
 	float Shw[16] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
@@ -107,7 +107,6 @@ int main(int argc, char **argv)
 	float Sx[7] = {0};	// the dummy state for the secondary path
 	float error;		// control error
 
-	float controller_output;
 	float Xhx[16] = {0}; // the state of the filtered x(k)
 	float mu = 0.01;
 
