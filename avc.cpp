@@ -130,8 +130,8 @@ int main(int argc, char **argv)
 
 		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
 		Ydiv = filter(Xiv);				   // filter the voltage 
-		X = convert_raw_to_voltage(Xiv);
-		Yd = convert_raw_to_voltage(Ydiv);
+		X = convert_raw_to_voltage(Xiv)-1.69;
+		Yd = convert_raw_to_voltage(Ydiv)-1.69;
 
 		//do LMS
 		shift_right(Cx, 16); // update the controller state
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 		
 		float Cy = dot_product(Cx, Cw, 16);
 
-		adcdac.set_dac_voltage(Cy, 1); // output anti vibration
+		adcdac.set_dac_voltage(Cy+1.69, 1); // output anti vibration
 
 		shift_right(Sx, 7);
 		Sx[0] = Cy;							 // propagate to secondary path
