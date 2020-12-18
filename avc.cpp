@@ -119,8 +119,8 @@ int main(int argc, char **argv)
 
 	float Xhx[16] = {0}; // the state of the filtered x(k)
 	float mu = 0.01;
-	tmpfile << "Input Raw, Input Filtered, ,Output" << endl;
-
+	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
+	auto start = Clock::now();
 	while (1)
 	{
 		//We need to have a steady sample rate so we can draw conclusions about the time series
@@ -140,7 +140,6 @@ int main(int argc, char **argv)
 		float Cy = dot_product(Cx, Cw, 16);
 
 		adcdac.set_dac_voltage(Cy, 1); // output anti vibration
-		tmpfile << X << "," << Yd << "," << Cy << endl;
 
 		shift_right(Sx, 7);
 		Sx[0] = Cy;							 // propagate to secondary path
@@ -149,6 +148,8 @@ int main(int argc, char **argv)
 		shift_right(Shx, 16); // update the state of Sh(z)
 		Shx[0] = X;
 
+		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << X << "," << Yd << "," << Cy << "," << error << endl;
+		
 		shift_right(Xhx, 16); // calculate the filtered x(k)
 		Xhx[0] = dot_product(Shx, Shw, 16);
 
