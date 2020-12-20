@@ -98,28 +98,15 @@ int main(int argc, char **argv)
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-
+	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
+	
 	nanoseconds full_delay = 1000000ns;
 
-	int Xiv;
-	int Ydiv;
 	float X;	// input voltage data buffer
-	float Yd; // data buffer for the filtered voltage
-	static SMA<20> filter;
-
-	// float Pw[7] = {0.01, 0.25, 0.5, 1, 0.5, 0.25, 0.01};
-	float Sw[7] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
-	float Shx[16] = {0.6011, 1.2314, 1.4398, 1.0205, -0.0293, -0.4486, 0.1817, -0.4486, -1.2874, -1.7068, -1.2874, -1.2874, -1.4984, 0.1817, 0.3927, 1.4398};
-	float Shw[16] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
-
-	float Cx[16] = {0}; // the state of C(z)
-	float Cw[16] = {0}; // the weight of C(z)
-	float Sx[7] = {0};	// the dummy state for the secondary path
-	float error;		// control error
-
-	float Xhx[16] = {0}; // the state of the filtered x(k)
+	float Y;
+	float amplitude_weight = 1;
 	float mu = 0.3;
-	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
+	
 	auto start = Clock::now();
 	while (1)
 	{
@@ -128,32 +115,14 @@ int main(int argc, char **argv)
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
-		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Ydiv = filter(Xiv);				   // filter the voltage 
-		X = convert_raw_to_voltage(Xiv)-1.69;
-		Yd = convert_raw_to_voltage(Ydiv)-1.69;
+		X = adcdac.read_adc_voltage(1, 0); // Get the input voltage
+		Y = ((X-1.69) * -1 * amplitude_weight) + 1.69;
 
-		//do LMS
-		shift_right(Cx, 16); // update the controller state
-		Cx[0] = X;
+		adcdac.set_dac_voltage(Y, 1); // output anti vibration
+
+		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << X << "," << Y << "," << amplitude_weight << endl;
 		
-		float Cy = dot_product(Cx, Cw, 16);
 
-		adcdac.set_dac_voltage(Cy+1.69, 1); // output anti vibration
-
-		shift_right(Sx, 7);
-		Sx[0] = Cy;							 // propagate to secondary path
-		error = Yd - dot_product(Sx, Sw, 7); //  measure the residue
-
-		shift_right(Shx, 16); // update the state of Sh(z)
-		Shx[0] = X;
-
-		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << X << "," << Yd << "," << Cy << "," << error << endl;
-		
-		shift_right(Xhx, 16); // calculate the filtered x(k)
-		Xhx[0] = dot_product(Shx, Shw, 16);
-
-		adjust_controller_weight(Cw, Xhx, mu, error); // adjust the controller weight
 
 		this_thread::sleep_until(next);
 	}
