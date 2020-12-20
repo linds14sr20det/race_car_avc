@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	float error;		// control error
 
 	float Xhx[16] = {0}; // the state of the filtered x(k)
-	float mu = 0.01;
+	float mu = 0.5;
 	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
 	auto start = Clock::now();
 	while (1)
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 		auto next = Clock::now() + full_delay;
 
 		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Ydiv = filter(Xiv);				   // filter the voltage 
+		Ydiv = Xiv; //filter(Xiv);				   // filter the voltage 
 		X = convert_raw_to_voltage(Xiv)-1.69;
 		Yd = convert_raw_to_voltage(Ydiv)-1.69;
 
