@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 		auto next = Clock::now() + full_delay;
 
 		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Ydiv = 0; //filter(Xiv);				   // filter the voltage 
+		Ydiv = 1.69; //filter(Xiv);				   // filter the voltage 
 		X = convert_raw_to_voltage(Xiv)-1.69;
 		Yd = convert_raw_to_voltage(Ydiv)-1.69;
 
