@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
 	float X;	// input voltage data buffer
 	float Y;
-	float amplitude_weight = 1;
+	float amplitude_weight = 3.5;
 	float mu = 0.3;
 	
 	auto start = Clock::now();
