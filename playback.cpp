@@ -17,6 +17,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
+#include <thread>
 #include <random>
 
 #include "ABE_ADCDACPi.h"
@@ -25,11 +26,6 @@ using namespace std;
 using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
-
-float convert_raw_to_voltage(int raw) 
-{
-	return float(raw) * 3.3 / 4095;
-}
 
 int main(int argc, char **argv)
 {
@@ -48,23 +44,21 @@ int main(int argc, char **argv)
 
 	nanoseconds full_delay = 1000000ns;
 
-	auto start = Clock::now();
-	while (getline(output_file, line))
+	while (1)
 	{
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
-		
+		getline(output_file, line);	
 		adcdac.set_dac_voltage(stof(line), 1); // output anti vibration
 
 		this_thread::sleep_until(next);
 	}
-	tmpfile.close();
-	adcdac.close_adc();
 	adcdac.close_dac();
 
 	(void)argc;
 	(void)argv;
 	return 0;
 }
+
