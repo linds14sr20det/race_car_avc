@@ -28,24 +28,28 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void *GenerateSineWave(void *threadid) {
+void *GenerateSineWave(void *threadid)
+{
 	ADCDACPi adcdac;
 
-	if (adcdac.open_dac() != 1) { // open the DAC spi channel
+	if (adcdac.open_dac() != 1)
+	{						// open the DAC spi channel
 		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
 
 	adcdac.set_dac_gain(2); // set the dac gain to 1 which will give a voltage range of 0 to 2.048V
 
-	uint16_t DACLookup[16] = {2048,2831,3495,3939,4095,3939,3495,2831,2048,1264,600,156,0,156,600,1264};
+	uint16_t DACLookup[16] = {2048, 2831, 3495, 3939, 4095, 3939, 3495, 2831, 2048, 1264, 600, 156, 0, 156, 600, 1264};
 	uint16_t i;
 	nanoseconds full_delay = 462962ns;
 
-	while (1) {
+	while (1)
+	{
 		//We're going to produce a 135Hz wave.
 		//We have 16 points per cycle. Each cycle needs to complete in 7407407 nanoseconds (1e+9/135=7407407)
 		//This means each point needs to run in 462962 nanoseconds.
-		for (i=0; i < 16; i = i + 1) {
+		for (i = 0; i < 16; i = i + 1)
+		{
 			auto next = Clock::now() + full_delay;
 			adcdac.set_dac_raw(DACLookup[i], 1);
 			this_thread::sleep_until(next);
@@ -57,10 +61,12 @@ void *GenerateSineWave(void *threadid) {
 	pthread_exit(NULL);
 }
 
-void *GenerateNoise(void *threadid) {
+void *GenerateNoise(void *threadid)
+{
 	ADCDACPi adcdac;
 
-	if (adcdac.open_dac() != 1) { // open the DAC spi channel
+	if (adcdac.open_dac() != 1)
+	{						// open the DAC spi channel
 		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
 
@@ -68,15 +74,18 @@ void *GenerateNoise(void *threadid) {
 
 	nanoseconds full_delay = 200000ns;
 	std::default_random_engine generator;
-  	std::normal_distribution<double> distribution(2047.0, 1024.0);
+	std::normal_distribution<double> distribution(2047.0, 1024.0);
 
-	while (1) {
+	while (1)
+	{
 		auto next = Clock::now() + full_delay;
 		int rando = int(distribution(generator));
-		if (rando > 2047) {
+		if (rando > 2047)
+		{
 			rando = 2047;
 		}
-		if (rando < 0) {
+		if (rando < 0)
+		{
 			rando = 0;
 		}
 		//We're going to produce totally random noise.
@@ -88,22 +97,25 @@ void *GenerateNoise(void *threadid) {
 	pthread_exit(NULL);
 }
 
-void *RecordNoise(void *threadid) {
+void *RecordNoise(void *threadid)
+{
 	ADCDACPi adcdac;
 
-	if (adcdac.open_adc() != 1) { // open the ADC spi channel
+	if (adcdac.open_adc() != 1)
+	{						// open the ADC spi channel
 		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
-	
+
 	uint i = 0;
 	ofstream tmpfile;
-	tmpfile.open("log.txt");
+	tmpfile.open("secondary_path_log.txt");
 	float voltage;
 	nanoseconds full_delay = 1000000ns;
-	while (1) {
+	while (1)
+	{
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sampe at 1000Hz.
-		//1/1000=0.001=1000 microseconds 
+		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
 		voltage = adcdac.read_adc_voltage(1, 0);
@@ -112,7 +124,8 @@ void *RecordNoise(void *threadid) {
 		this_thread::sleep_until(next);
 		i++;
 		//This thing is sampling really fast and writing to a file. This could corrupt system memory if it gets too big
-		if(i>100000) {
+		if (i > 100000)
+		{
 			break;
 		}
 	}
@@ -121,7 +134,8 @@ void *RecordNoise(void *threadid) {
 	pthread_exit(NULL);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	//This program spawns thread to keep things fast
 	pthread_t threads[2];
 
@@ -134,4 +148,3 @@ int main(int argc, char **argv) {
 	(void)argv;
 	return 0;
 }
-

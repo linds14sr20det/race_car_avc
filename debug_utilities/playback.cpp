@@ -39,8 +39,8 @@ int main(int argc, char **argv)
 	adcdac.set_dac_gain(2); // set the DAC gain to 2 which will give a max voltage of 3.3V
 
 	/* Creating input filestream */
-    	ifstream output_file("output.txt");
-	string line;	
+	ifstream output_file("output_for_playback.txt");
+	string line;
 
 	nanoseconds full_delay = 1000000ns;
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
-		getline(output_file, line);	
+		getline(output_file, line);
 		voltage = stof(line);
 		adcdac.set_dac_voltage(voltage, 1); // output anti vibration
 		adcdac.set_dac_voltage(voltage, 2); // output anti vibration
@@ -64,4 +64,3 @@ int main(int argc, char **argv)
 	(void)argv;
 	return 0;
 }
-
