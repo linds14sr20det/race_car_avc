@@ -98,11 +98,12 @@ int main(int argc, char **argv)
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
+	tmpfile << "Timestamp, Engine Raw, Chassis Raw, Output" << endl;
 	
 	nanoseconds full_delay = 1000000ns;
 
-	float X;	// input voltage data buffer
+	float engine_vibration;	// input voltage data buffer
+	float chassis_vibration;	// input voltage data buffer
 	float Y;
 	float amplitude_weight = 3.5;
 	float mu = 0.3;
@@ -115,12 +116,13 @@ int main(int argc, char **argv)
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
-		X = adcdac.read_adc_voltage(1, 0); // Get the input voltage
-		Y = ((X-1.69) * -1 * amplitude_weight) + 1.69;
+		engine_vibration = adcdac.read_adc_voltage(1, 0); // Get the input voltage
+		chassis_vibration = adcdac.read_adc_voltage(2, 0); // Get the "error" input voltage
+		Y = ((engine_vibration-1.69) * -1 * amplitude_weight) + 1.69;
 
 		adcdac.set_dac_voltage(Y, 1); // output anti vibration
 
-		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << X << "," << Y << "," << amplitude_weight << endl;
+		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << engine_vibration << "," << chassis_vibration << "," << Y  << endl;
 		
 
 

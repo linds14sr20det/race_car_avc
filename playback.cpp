@@ -44,6 +44,7 @@ int main(int argc, char **argv)
 
 	nanoseconds full_delay = 1000000ns;
 
+	float voltage;
 	while (1)
 	{
 		//We need to have a steady sample rate so we can draw conclusions about the time series
@@ -51,7 +52,9 @@ int main(int argc, char **argv)
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 		getline(output_file, line);	
-		adcdac.set_dac_voltage(stof(line), 1); // output anti vibration
+		voltage = stof(line);
+		adcdac.set_dac_voltage(voltage, 1); // output anti vibration
+		adcdac.set_dac_voltage(voltage, 2); // output anti vibration
 
 		this_thread::sleep_until(next);
 	}
