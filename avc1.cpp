@@ -18,7 +18,10 @@
 #include <iomanip>
 #include <cstdlib>
 #include <thread>
-#include <random>
+#include <pthread.h>
+#include <mutex>
+#include <string>
+#include <atomic>
 
 #include "ABE_ADCDACPi.h"
 
@@ -27,61 +30,28 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
-{
-	for (int i = 0; i < 16; i++)
-	{
-		Cw[i] = Cw[i] + Xhx[i] * mu * error;
+std::atomic<bool> read_input(true);
+std::atomic<bool> output_dac(false);
+
+void ReadUserInput() {
+	char user_input;
+	while (read_input.load()) {
+		cout << "Waiting for user input:\n";
+		std::cin >> user_input;
+		switch(user_input) {
+			case 'e' :
+				read_input.store(false);
+				break;
+			case 'o' :
+				output_dac.store(!output_dac.load());
+				break;
+		}
+
 	}
+	pthread_exit(NULL);
 }
 
-void shift_right(float values[], int size)
-{
-	for (int i = size - 1; i > -1; i--)
-	{
-		values[i] = values[i-1];
-	}
-}
-
-float dot_product(float vector_a[], float vector_b[], int size)
-{
-	float product = 0;
-	for (int i = 0; i < size; i++)
-		product = product + vector_a[i] * vector_b[i];
-	return product;
-}
-
-template <uint8_t N, class input_t = uint16_t, class sum_t = uint32_t>
-class SMA
-{
-public:
-	input_t operator()(input_t input)
-	{
-		sum -= previousInputs[index];
-		sum += input;
-		previousInputs[index] = input;
-		if (++index == N)
-			index = 0;
-		return (sum + (N / 2)) / N;
-	}
-
-	static_assert(
-		sum_t(0) < sum_t(-1), // Check that `sum_t` is an unsigned type
-		"Error: sum data type should be an unsigned integer, otherwise, "
-		"the rounding operation in the return statement is invalid.");
-
-private:
-	uint8_t index = 0;
-	input_t previousInputs[N] = {};
-	sum_t sum = 0;
-};
-
-float convert_raw_to_voltage(int raw) 
-{
-	return float(raw) * 3.3 / 4095;
-}
-
-int main(int argc, char **argv)
+void ReadAdc()
 {
 	ADCDACPi adcdac;
 
@@ -106,10 +76,9 @@ int main(int argc, char **argv)
 	float chassis_vibration;	// input voltage data buffer
 	float Y;
 	float amplitude_weight = 3.5;
-	float mu = 0.3;
-	
+
 	auto start = Clock::now();
-	while (1)
+	while (read_input.load())
 	{
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
@@ -120,19 +89,24 @@ int main(int argc, char **argv)
 		chassis_vibration = adcdac.read_adc_voltage(2, 0); // Get the "error" input voltage
 		Y = ((engine_vibration-1.69) * -1 * amplitude_weight) + 1.69;
 
-		adcdac.set_dac_voltage(Y, 1); // output anti vibration
-
+		if(output_dac.load()) {
+			adcdac.set_dac_voltage(Y, 1); // output anti vibration
+		}
 		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << engine_vibration << "," << chassis_vibration << "," << Y  << endl;
 		
-
-
 		this_thread::sleep_until(next);
 	}
+
 	tmpfile.close();
 	adcdac.close_adc();
 	adcdac.close_dac();
+}
 
-	(void)argc;
-	(void)argv;
+int main() {
+	std::thread i_o (ReadUserInput);
+	std::thread adcdac (ReadAdc);
+
+	i_o.join();
+	adcdac.join();
 	return 0;
 }
