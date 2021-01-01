@@ -77,7 +77,7 @@ void ReadAdc()
 	float engine_vibration;	 // input voltage data buffer
 	float chassis_vibration; // input voltage data buffer
 	float Y;
-	float amplitude_weight = 3.5;
+	float amplitude_weight = 1.5;
 
 	auto start = Clock::now();
 	while (read_input.load())
