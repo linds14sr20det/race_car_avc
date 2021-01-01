@@ -27,139 +27,133 @@ using namespace ABElectronics_CPP_Libraries;
 using Clock = std::chrono::system_clock;
 using nanoseconds = std::chrono::nanoseconds;
 
-void adjust_controller_weight(float Cw[], float Xhx[], float mu, float error)
+std::atomic<bool> read_input(true);
+std::atomic<bool> log_output(false);
+
+void ReadUserInput()
 {
-	for (int i = 0; i < 16; i++)
+	char user_input;
+	while (read_input.load())
 	{
-		Cw[i] = Cw[i] + Xhx[i] * mu * error;
+		cout << "Waiting for user input (l for turning on logging, e to exit):\n";
+		std::cin >> user_input;
+		switch (user_input)
+		{
+		case 'e':
+			read_input.store(false);
+			break;
+		case 'l':
+			log_output.store(!log_output.load());
+			break;
+		}
 	}
 }
 
-void shift_right(float values[], int size)
-{
-	for (int i = size - 1; i > -1; i--)
-	{
-		values[i] = values[i-1];
-	}
-}
-
-float dot_product(float vector_a[], float vector_b[], int size)
-{
-	float product = 0;
-	for (int i = 0; i < size; i++)
-		product = product + vector_a[i] * vector_b[i];
-	return product;
-}
-
-template <uint8_t N, class input_t = uint16_t, class sum_t = uint32_t>
-class SMA
-{
-public:
-	input_t operator()(input_t input)
-	{
-		sum -= previousInputs[index];
-		sum += input;
-		previousInputs[index] = input;
-		if (++index == N)
-			index = 0;
-		return (sum + (N / 2)) / N;
-	}
-
-	static_assert(
-		sum_t(0) < sum_t(-1), // Check that `sum_t` is an unsigned type
-		"Error: sum data type should be an unsigned integer, otherwise, "
-		"the rounding operation in the return statement is invalid.");
-
-private:
-	uint8_t index = 0;
-	input_t previousInputs[N] = {};
-	sum_t sum = 0;
-};
-
-float convert_raw_to_voltage(int raw) 
+float convert_raw_to_voltage(int raw)
 {
 	return float(raw) * 3.3 / 4095;
 }
 
-int main(int argc, char **argv)
+void ActiveVibrationControl()
 {
+	//Define constants
+	int N = 25;	   //Filter length
+	float mu = 25; //Define LMS step-size
+
+	//Define 'for' loop counters
+	int k = 0; //Stored reference sample counter
+	int i = 0; //Convolution counter
+
+	//Vectors, to implement matrix multiplication
+	float w[25];		//Adaptive filter coefficients
+	float x_window[25]; //Define stored x values used in convolution
+
+	float x_biased;
+	float e_biased;
+	float x;
+	float e;
+	float y;
+	int log_count = 0;
+
 	ADCDACPi adcdac;
 
-	if (adcdac.open_adc() != 1)
-	{						// open the ADC spi channel
-		pthread_exit(NULL); // if the SPI bus fails to open exit the program
+	if (adcdac.open_adc() != 1) // open the ADC spi channel
+	{
+		return; // if the SPI bus fails to open exit the program
 	}
-	if (adcdac.open_dac() != 1)
-	{						// open the DAC spi channel
-		pthread_exit(NULL); // if the SPI bus fails to open exit the program
+
+	if (adcdac.open_dac() != 1) // open the DAC spi channel
+	{
+		return; // if the SPI bus fails to open exit the program
 	}
 
 	adcdac.set_dac_gain(2); // set the DAC gain to 2 which will give a max voltage of 3.3V
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
+	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Output" << endl;
 
 	nanoseconds full_delay = 1000000ns;
-
-	int Xiv;
-	int Ydiv;
-	float X;	// input voltage data buffer
-	float Yd; // data buffer for the filtered voltage
-	static SMA<20> filter;
-
-	// float Pw[7] = {0.01, 0.25, 0.5, 1, 0.5, 0.25, 0.01};
-	float Sw[7] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
-	float Shx[16] = {0.6011, 1.2314, 1.4398, 1.0205, -0.0293, -0.4486, 0.1817, -0.4486, -1.2874, -1.7068, -1.2874, -1.2874, -1.4984, 0.1817, 0.3927, 1.4398};
-	float Shw[16] = {0.0025, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.0025};
-
-	float Cx[16] = {0}; // the state of C(z)
-	float Cw[16] = {0}; // the weight of C(z)
-	float Sx[7] = {0};	// the dummy state for the secondary path
-	float error;		// control error
-
-	float Xhx[16] = {0}; // the state of the filtered x(k)
-	float mu = 0.3;
-	tmpfile << "Timestamp, Input Raw, Input Filtered, Output, Error" << endl;
 	auto start = Clock::now();
-	while (1)
+
+	while (read_input.load())
 	{
+		log_count++;
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
-		Xiv = adcdac.read_adc_raw(1, 0); // Get the input voltage
-		Ydiv = filter(Xiv);				   // filter the voltage 
-		X = convert_raw_to_voltage(Xiv)-1.69;
-		Yd = convert_raw_to_voltage(Ydiv)-1.69;
+		//Preliminary signals
+		x_biased = adcdac.read_adc_voltage(1, 0); //Get biased input engine vibration
+		e_biased = adcdac.read_adc_voltage(2, 0); //Get biased input chassis vibration (error)
+		x = (x_biased - 1.65);					  //Unbias reference signal to obtain original recorded x
+		e = (e_biased - 1.65);					  //Unbias error signal to obtain original recorded e
 
-		//do LMS
-		shift_right(Cx, 16); // update the controller state
-		Cx[0] = X;
-		
-		float Cy = dot_product(Cx, Cw, 16);
+		//Populate stored reference value matrix
+		for (k = N - 1; k > -1; k--)
+		{ //Shift values right, such that most recent sample is x_window[0]
+			if (k == 0)
+			{
+				x_window[k] = x; //Most recently sampled value assigned to first entry of stored reference array
+			}
+			else
+			{
+				x_window[k] = x_window[k - 1]; //Shift right
+			}
+		}
 
-		adcdac.set_dac_voltage(Cy+1.69, 1); // output anti vibration
+		//Perform LMS
+		y = 0; //Prepare y value for convolution
+		for (i = 0; i < N; i++)
+		{											  //Loop for every value in the 'matrices'
+			y = y + (w[i]) * (x_window[i]);			  //Convolution implementation
+			w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
+		}
 
-		shift_right(Sx, 7);
-		Sx[0] = Cy;							 // propagate to secondary path
-		error = Yd - dot_product(Sx, Sw, 7); //  measure the residue
+		//Output after biasing for DAC
+		adcdac.set_dac_voltage(y + 1.65, 1); // output anti vibration
+		adcdac.set_dac_voltage(y + 1.65, 2); // output anti vibration
 
-		shift_right(Shx, 16); // update the state of Sh(z)
-		Shx[0] = X;
-
-		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds> (Clock::now() - start).count() << "," << X << "," << Yd << "," << Cy << "," << error << endl;
-		
-		shift_right(Xhx, 16); // calculate the filtered x(k)
-		Xhx[0] = dot_product(Shx, Shw, 16);
-
-		adjust_controller_weight(Cw, Xhx, mu, error); // adjust the controller weight
+		if (log_output.load() && log_count < 100000)
+		{
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x_biased << "," << e_biased << "," << y << endl;
+		}
 
 		this_thread::sleep_until(next);
 	}
 	tmpfile.close();
 	adcdac.close_adc();
 	adcdac.close_dac();
+}
+
+int main(int argc, char **argv)
+{
+	std::thread i_o(ReadUserInput);
+	std::thread avc(ActiveVibrationControl);
+
+	i_o.join();
+	avc.join();
 
 	(void)argc;
 	(void)argv;

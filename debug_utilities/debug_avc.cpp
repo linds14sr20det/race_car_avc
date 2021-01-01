@@ -54,20 +54,19 @@ void ReadUserInput()
 			break;
 		}
 	}
-	pthread_exit(NULL);
 }
 
 void ReadAdc()
 {
 	ADCDACPi adcdac;
 
-	if (adcdac.open_adc() != 1)
-	{						// open the ADC spi channel
-		pthread_exit(NULL); // if the SPI bus fails to open exit the program
+	if (adcdac.open_adc() != 1) // open the ADC spi channel
+	{
+		return; // if the SPI bus fails to open exit the program
 	}
-	if (adcdac.open_dac() != 1)
-	{						// open the DAC spi channel
-		pthread_exit(NULL); // if the SPI bus fails to open exit the program
+	if (adcdac.open_dac() != 1) // open the DAC spi channel
+	{
+		return; // if the SPI bus fails to open exit the program
 	}
 
 	adcdac.set_dac_gain(2); // set the DAC gain to 2 which will give a max voltage of 3.3V
