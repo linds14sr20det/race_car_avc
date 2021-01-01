@@ -102,8 +102,8 @@ void ActiveVibrationControl()
 		//Preliminary signals
 		x_biased = adcdac.read_adc_voltage(1, 0); //Get biased input engine vibration
 		e_biased = adcdac.read_adc_voltage(2, 0); //Get biased input chassis vibration (error)
-		x = (x_biased - 1.69);					  //Unbias reference signal to obtain original recorded x
-		e = (e_biased - 1.69);					  //Unbias error signal to obtain original recorded e
+		x = (x_biased - 1.692);					  //Unbias reference signal to obtain original recorded x
+		e = (e_biased - 1.704);					  //Unbias error signal to obtain original recorded e
 
 		//Populate stored reference value matrix
 		for (k = N - 1; k > -1; k--)
