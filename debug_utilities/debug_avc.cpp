@@ -1,7 +1,13 @@
 /*
- *
  *      compile with "g++ debug_avc.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o debug_avc"
- *      run with "./avc"
+ *      run with "./debug_avc"
+ * 
+ * 		This program runs a very simple AVC algorithm. It effectively measures the vibration of the engine via 
+ * 		a sensor mounted to the gearbox, while the error is measured via a sensor mounted to the transmission
+ * 		mount. This is then logged. The output algorithm effectively inverses the engine vibration and sends it
+ * 		to the actuator. This is a very naive approach only used for debugging. The end user can toggle the 
+ * 		vibration control on and off via the console, which is useful to measure the output effect on the 
+ * 		system.
  */
 
 #include <stdint.h>
@@ -18,8 +24,6 @@
 #include <iomanip>
 #include <cstdlib>
 #include <thread>
-#include <pthread.h>
-#include <mutex>
 #include <string>
 #include <atomic>
 
@@ -38,7 +42,7 @@ void ReadUserInput()
 	char user_input;
 	while (read_input.load())
 	{
-		cout << "Waiting for user input:\n";
+		cout << "Waiting for user input (o for turn on output, e to exit):\n";
 		std::cin >> user_input;
 		switch (user_input)
 		{
@@ -74,6 +78,7 @@ void ReadAdc()
 
 	nanoseconds full_delay = 1000000ns;
 
+	int i = 0;
 	float engine_vibration;	 // input voltage data buffer
 	float chassis_vibration; // input voltage data buffer
 	float Y;
@@ -82,6 +87,11 @@ void ReadAdc()
 	auto start = Clock::now();
 	while (read_input.load())
 	{
+		i++;
+		if (i < 100000)
+		{
+			break;
+		}
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
@@ -89,10 +99,10 @@ void ReadAdc()
 
 		engine_vibration = adcdac.read_adc_voltage(1, 0);  // Get the input voltage
 		chassis_vibration = adcdac.read_adc_voltage(2, 0); // Get the "error" input voltage
-		Y = ((engine_vibration - 1.69) * -1 * amplitude_weight) + 1.69;
-
+		Y = 1.68;
 		if (output_dac.load())
 		{
+			Y = ((engine_vibration - 1.69) * -1 * amplitude_weight) + 1.69;
 			adcdac.set_dac_voltage(Y, 1); // output anti vibration
 		}
 		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << engine_vibration << "," << chassis_vibration << "," << Y << endl;

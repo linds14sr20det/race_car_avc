@@ -1,7 +1,12 @@
 /*
  *
  *      compile with "g++ secondary_path.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -lpthread -o secondary_path"
- *      run with "./avc"
+ *      run with "./secondary_path"
+ * 
+ * 		This program generates white noise from the actuator that the error sensor measures. This is done so that the 
+ * 		coefficients of the secondary path can be properly accounted for in the FxLMS algorithm. The coefficients used
+ * 		by default in the AVC program should get you close enough for most coarse engine vibrations, however if you
+ * 		need to fine tune the vibration algorithm this program should help you.
  */
 
 #include <stdint.h>
@@ -70,7 +75,7 @@ void *GenerateNoise(void *threadid)
 		pthread_exit(NULL); // if the SPI bus fails to open exit the program
 	}
 
-	adcdac.set_dac_gain(2); // set the dac gain to 1 which will give a voltage range of 0 to 2.048V
+	adcdac.set_dac_gain(2); // set the dac gain to 1 which will give a voltage range of 0 to 3.3V
 
 	nanoseconds full_delay = 200000ns;
 	std::default_random_engine generator;
@@ -90,6 +95,8 @@ void *GenerateNoise(void *threadid)
 		}
 		//We're going to produce totally random noise.
 		adcdac.set_dac_raw(rando, 1);
+		adcdac.set_dac_raw(rando, 2);
+
 		this_thread::sleep_until(next);
 	}
 

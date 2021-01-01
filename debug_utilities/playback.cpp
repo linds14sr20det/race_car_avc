@@ -1,7 +1,12 @@
 /*
  *
  *      compile with "g++ playback.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o playback"
- *      run with "./avc"
+ *      run with "./playback"
+ * 
+ * 		This program is useful to debug that the physical system is actually working. This effectively
+ * 		"plays" a vibration recording back via the DAC output. This playback consists of an engine idling,
+ * 		then revved to 4500 rpm (resonance in the chassis at this rpm point), then back to idle, then
+ * 		back to 4500 rpm. There is no vibration control implemented here.
  */
 
 #include <stdint.h>
@@ -17,7 +22,6 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
-#include <thread>
 #include <random>
 
 #include "ABE_ADCDACPi.h"
