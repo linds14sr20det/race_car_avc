@@ -18,7 +18,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <thread>
-#include <random>
+#include <atomic>
 
 #include "ABE_ADCDACPi.h"
 
@@ -130,10 +130,11 @@ void ActiveVibrationControl()
 			y = y + (w[i]) * (x_window[i]);			  //Convolution implementation
 			w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
 		}
+		cout << y << "\n";
 
 		//Output after biasing for DAC
-		adcdac.set_dac_voltage(y + 1.65, 1); // output anti vibration
-		adcdac.set_dac_voltage(y + 1.65, 2); // output anti vibration
+		//adcdac.set_dac_voltage(y + 1.65, 1); // output anti vibration
+		//adcdac.set_dac_voltage(y + 1.65, 2); // output anti vibration
 
 		if (log_output.load() && log_count < 100000)
 		{
