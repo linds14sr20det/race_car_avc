@@ -49,16 +49,11 @@ void ReadUserInput()
 	}
 }
 
-float convert_raw_to_voltage(int raw)
-{
-	return float(raw) * 3.3 / 4095;
-}
-
 void ActiveVibrationControl()
 {
 	//Define constants
 	int N = 25;	   //Filter length
-	float mu = 25; //Define LMS step-size
+	float mu = 1; //Define LMS step-size
 
 	//Define 'for' loop counters
 	int k = 0; //Stored reference sample counter
@@ -107,8 +102,8 @@ void ActiveVibrationControl()
 		//Preliminary signals
 		x_biased = adcdac.read_adc_voltage(1, 0); //Get biased input engine vibration
 		e_biased = adcdac.read_adc_voltage(2, 0); //Get biased input chassis vibration (error)
-		x = (x_biased - 1.65);					  //Unbias reference signal to obtain original recorded x
-		e = (e_biased - 1.65);					  //Unbias error signal to obtain original recorded e
+		x = (x_biased - 1.69);					  //Unbias reference signal to obtain original recorded x
+		e = (e_biased - 1.69);					  //Unbias error signal to obtain original recorded e
 
 		//Populate stored reference value matrix
 		for (k = N - 1; k > -1; k--)
@@ -130,11 +125,18 @@ void ActiveVibrationControl()
 			y = y + (w[i]) * (x_window[i]);			  //Convolution implementation
 			w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
 		}
-		cout << y << "\n";
 
 		//Output after biasing for DAC
-		//adcdac.set_dac_voltage(y + 1.65, 1); // output anti vibration
-		//adcdac.set_dac_voltage(y + 1.65, 2); // output anti vibration
+		if (y > 3.3 ) 
+		{
+			y = 3.3;
+		}
+		if (y < 0) 
+		{
+			y = 0;
+		}
+		adcdac.set_dac_voltage(y, 1); // output anti vibration
+		adcdac.set_dac_voltage(y, 2); // output anti vibration
 
 		if (log_output.load() && log_count < 100000)
 		{
