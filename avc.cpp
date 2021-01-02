@@ -53,7 +53,7 @@ void ActiveVibrationControl()
 {
 	//Define constants
 	int N = 25;	   //Filter length
-	float mu = 25; //Define LMS step-size
+	float mu = 0.1; //Define LMS step-size
 
 	//Define 'for' loop counters
 	int k = 0; //Stored reference sample counter
