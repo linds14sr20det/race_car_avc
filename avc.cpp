@@ -21,6 +21,7 @@
 #include <atomic>
 
 #include "ABE_ADCDACPi.h"
+#include "MiniPID.h"
 
 using namespace std;
 using namespace ABElectronics_CPP_Libraries;
@@ -51,26 +52,30 @@ void ReadUserInput()
 
 void ActiveVibrationControl()
 {
-	//Define constants
-	int N = 25;	   //Filter length
-	float mu = 0.1; //Define LMS step-size
+	// //Define constants
+	// int N = 25;		//Filter length
+	// float mu = 25; //Define LMS step-size
 
-	//Define 'for' loop counters
-	int k = 0; //Stored reference sample counter
-	int i = 0; //Convolution counter
+	// //Define 'for' loop counters
+	// int k = 0; //Stored reference sample counter
+	// int i = 0; //Convolution counter
 
-	//Vectors, to implement matrix multiplication
-	float w[25];		//Adaptive filter coefficients
-	float x_window[25]; //Define stored x values used in convolution
+	// //Vectors, to implement matrix multiplication
+	// float w[25];		//Adaptive filter coefficients
+	// float x_window[25]; //Define stored x values used in convolution
 
 	float x_biased;
 	float e_biased;
 	float x;
 	float e;
 	float y;
+	float y_adjusted;
 	int log_count = 0;
 
 	ADCDACPi adcdac;
+	MiniPID pid = MiniPID(0.1, 0.01, 0);
+	pid.setOutputLimits(-1.64, 1.64);
+	pid.setOutputRampRate(10);
 
 	if (adcdac.open_adc() != 1) // open the ADC spi channel
 	{
@@ -93,7 +98,6 @@ void ActiveVibrationControl()
 
 	while (read_input.load())
 	{
-		log_count++;
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
@@ -104,45 +108,50 @@ void ActiveVibrationControl()
 		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
 		x = (x_biased - 1.704);					  //Unbias reference signal to obtain original recorded x
 		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
+		y = x * -1;
 
-		//Populate stored reference value matrix
-		for (k = N - 1; k > -1; k--)
-		{ //Shift values right, such that most recent sample is x_window[0]
-			if (k == 0)
-			{
-				x_window[k] = x; //Most recently sampled value assigned to first entry of stored reference array
-			}
-			else
-			{
-				x_window[k] = x_window[k - 1]; //Shift right
-			}
-		}
+		y_adjusted = pid.getOutput(e, y);
 
-		//Perform LMS
-		y = 0; //Prepare y value for convolution
-		for (i = 0; i < N; i++)
-		{											  //Loop for every value in the 'matrices'
-			y = y + (w[i]) * (x_window[i]);			  //Convolution implementation
-			w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
-		}
+		// //Populate stored reference value matrix
+		// for (k = N - 1; k > -1; k--)
+		// { //Shift values right, such that most recent sample is x_window[0]
+		// 	if (k == 0)
+		// 	{
+		// 		x_window[k] = x; //Most recently sampled value assigned to first entry of stored reference array
+		// 	}
+		// 	else
+		// 	{
+		// 		x_window[k] = x_window[k - 1]; //Shift right
+		// 	}
+		// }
 
-		//Output after biasing for DAC
-		y = y + 1.65;
-		if (y > 3.3)
-		{
-			y = 3.3;
-		}
-		if (y < 0)
-		{
-			y = 0;
-		}
+		// //Perform LMS
+		// y = 0; //Prepare y value for convolution
+		// for (i = 0; i < N; i++)
+		// {											  //Loop for every value in the 'matrices'
+		// 	y = y + (w[i]) * (x_window[i]);			  //Convolution implementation (X transpose * W, effectively the dot product as these are 1d matricies)
+		// 	w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
+		// }
+
+		// //Output after biasing for DAC
+		// // Better solution is a sigmoid function applied to y
+		// y = y + 1.65;
+		// if (y > 3.3)
+		// {
+		// 	y = 3.3;
+		// }
+		// if (y < 0)
+		// {
+		// 	y = 0;
+		// }
 		//cout << y << "\n";
-		adcdac.set_dac_voltage(y, 1); // output anti vibration
-		adcdac.set_dac_voltage(y, 2); // output anti vibration
+		adcdac.set_dac_voltage(y_adjusted + 1.645, 1); // output anti vibration
+		adcdac.set_dac_voltage(y_adjusted + 1.645, 2); // output anti vibration
 
 		if (log_output.load() && log_count < 100000)
 		{
-			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x_biased << "," << e_biased << "," << y << endl;
+			log_count++;
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y_adjusted << endl;
 		}
 
 		this_thread::sleep_until(next);
