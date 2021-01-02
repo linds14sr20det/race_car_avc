@@ -73,7 +73,7 @@ void ActiveVibrationControl()
 	int log_count = 0;
 
 	ADCDACPi adcdac;
-	MiniPID pid = MiniPID(0.1, 0, 0.01);
+	MiniPID pid = MiniPID(1, 0, 0);
 	pid.setOutputLimits(-1.64, 1.64);
 	pid.setOutputRampRate(10);
 
@@ -91,7 +91,7 @@ void ActiveVibrationControl()
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Output" << endl;
+	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Reference Signal, Output" << endl;
 
 	nanoseconds full_delay = 1000000ns;
 	auto start = Clock::now();
@@ -117,7 +117,7 @@ void ActiveVibrationControl()
 		if (log_output.load() && log_count < 100000)
 		{
 			log_count++;
-			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y_adjusted << endl;
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y << "," << y_adjusted << endl;
 		}
 
 		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
