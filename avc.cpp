@@ -67,7 +67,7 @@ void ActiveVibrationControl()
 	float x_biased;
 	float e_biased;
 	float x;
-	float e;
+	float e = 0;
 	float y;
 	float y_adjusted;
 	int log_count = 0;
@@ -105,46 +105,12 @@ void ActiveVibrationControl()
 
 		//Preliminary signals
 		x_biased = adcdac.read_adc_voltage(2, 0); //Get biased input engine vibration
-		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
-		x = (x_biased - 1.704);					  //Unbias reference signal to obtain original recorded x
-		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
+
+		x = x * 0.7 + (x_biased - 1.704) * 0.3; //Unbias reference signal to obtain original recorded x
 		y = x * -1;
 
 		y_adjusted = pid.getOutput(e, y);
 
-		// //Populate stored reference value matrix
-		// for (k = N - 1; k > -1; k--)
-		// { //Shift values right, such that most recent sample is x_window[0]
-		// 	if (k == 0)
-		// 	{
-		// 		x_window[k] = x; //Most recently sampled value assigned to first entry of stored reference array
-		// 	}
-		// 	else
-		// 	{
-		// 		x_window[k] = x_window[k - 1]; //Shift right
-		// 	}
-		// }
-
-		// //Perform LMS
-		// y = 0; //Prepare y value for convolution
-		// for (i = 0; i < N; i++)
-		// {											  //Loop for every value in the 'matrices'
-		// 	y = y + (w[i]) * (x_window[i]);			  //Convolution implementation (X transpose * W, effectively the dot product as these are 1d matricies)
-		// 	w[i] = w[i] + (2 * mu * e * x_window[i]); //Update filter coefficients
-		// }
-
-		// //Output after biasing for DAC
-		// // Better solution is a sigmoid function applied to y
-		// y = y + 1.65;
-		// if (y > 3.3)
-		// {
-		// 	y = 3.3;
-		// }
-		// if (y < 0)
-		// {
-		// 	y = 0;
-		// }
-		//cout << y << "\n";
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 1); // output anti vibration
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 2); // output anti vibration
 
@@ -153,6 +119,9 @@ void ActiveVibrationControl()
 			log_count++;
 			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y_adjusted << endl;
 		}
+
+		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
+		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
 
 		this_thread::sleep_until(next);
 	}
