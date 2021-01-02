@@ -1,6 +1,6 @@
 /*
  *
- *      compile with "g++ avc.cpp ABE_ADCDACPi.cpp -Wall -Wextra -Wpedantic -Woverflow -o avc"
+ *      compile with "g++ avc.cpp ABE_ADCDACPi.cpp MiniPid.cpp -Wall -Wextra -Wpedantic -Woverflow -lpthread -o avc"
  *      run with "./avc"
  */
 
