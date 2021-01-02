@@ -127,6 +127,7 @@ void ActiveVibrationControl()
 		}
 
 		//Output after biasing for DAC
+		y = y + 1.65;
 		if (y > 3.3 ) 
 		{
 			y = 3.3;
@@ -135,6 +136,7 @@ void ActiveVibrationControl()
 		{
 			y = 0;
 		}
+		//cout << y << "\n";
 		adcdac.set_dac_voltage(y, 1); // output anti vibration
 		adcdac.set_dac_voltage(y, 2); // output anti vibration
 
