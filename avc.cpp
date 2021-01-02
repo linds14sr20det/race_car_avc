@@ -53,7 +53,7 @@ void ActiveVibrationControl()
 {
 	//Define constants
 	int N = 25;	   //Filter length
-	float mu = 1; //Define LMS step-size
+	float mu = 25; //Define LMS step-size
 
 	//Define 'for' loop counters
 	int k = 0; //Stored reference sample counter
@@ -100,10 +100,10 @@ void ActiveVibrationControl()
 		auto next = Clock::now() + full_delay;
 
 		//Preliminary signals
-		x_biased = adcdac.read_adc_voltage(1, 0); //Get biased input engine vibration
-		e_biased = adcdac.read_adc_voltage(2, 0); //Get biased input chassis vibration (error)
-		x = (x_biased - 1.692);					  //Unbias reference signal to obtain original recorded x
-		e = (e_biased - 1.704);					  //Unbias error signal to obtain original recorded e
+		x_biased = adcdac.read_adc_voltage(2, 0); //Get biased input engine vibration
+		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
+		x = (x_biased - 1.704);					  //Unbias reference signal to obtain original recorded x
+		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
 
 		//Populate stored reference value matrix
 		for (k = N - 1; k > -1; k--)
@@ -128,11 +128,11 @@ void ActiveVibrationControl()
 
 		//Output after biasing for DAC
 		y = y + 1.65;
-		if (y > 3.3 ) 
+		if (y > 3.3)
 		{
 			y = 3.3;
 		}
-		if (y < 0) 
+		if (y < 0)
 		{
 			y = 0;
 		}
