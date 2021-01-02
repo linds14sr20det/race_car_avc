@@ -73,7 +73,7 @@ void ActiveVibrationControl()
 	int log_count = 0;
 
 	ADCDACPi adcdac;
-	MiniPID pid = MiniPID(1, 0, 0);
+	MiniPID pid = MiniPID(0, 1, 0);
 	pid.setOutputLimits(-1.64, 1.64);
 	pid.setOutputRampRate(10);
 
