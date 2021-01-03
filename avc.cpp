@@ -87,7 +87,7 @@ void ActiveVibrationControl()
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Reference Signal, Output" << endl;
+	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Reference Signal, inverse" << endl;
 
 	nanoseconds full_delay = 1000000ns;
 	auto start = Clock::now();
@@ -104,10 +104,12 @@ void ActiveVibrationControl()
 
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
 
-		y = 0.5 * x;
+		y = x;
 
+		y_adjusted = 0;
 		if (polarity.load())
 		{
+			y_adjusted = 1;
 			y = y * -1;
 		}
 
