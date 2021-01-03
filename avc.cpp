@@ -105,7 +105,7 @@ void ActiveVibrationControl()
 		y = 0;
 		if (controller_output.load())
 		{
-			y = 2 * x;
+			y = 0.7 * x;
 			adcdac.set_dac_voltage(y + 1.645, 1); // output anti vibration
 			adcdac.set_dac_voltage(y + 1.645, 2); // output anti vibration
 		}
