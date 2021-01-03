@@ -97,7 +97,7 @@ void ActiveVibrationControl()
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
 		y = x * -1;
 
-		y_adjusted = pid.getOutput(y - e, y);
+		y_adjusted = pid.getOutput(e, y);
 
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 1); // output anti vibration
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 2); // output anti vibration
