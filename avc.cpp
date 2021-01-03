@@ -31,7 +31,7 @@ using nanoseconds = std::chrono::nanoseconds;
 std::atomic<bool> read_input(true);
 std::atomic<bool> log_output(false);
 std::atomic<bool> controller_output(false);
-std::atomic<float> gain(3.0);
+std::atomic<float> gain(1.0);
 
 void ReadUserInput()
 {
@@ -92,7 +92,7 @@ void ActiveVibrationControl()
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Engine Vibration, Chassis Vibration (error), Reference Signal, inverse" << endl;
+	tmpfile << "Timestamp, Engine Vibration, Anti Vibration Signal, Chassis Vibration (error)" << endl;
 
 	nanoseconds full_delay = 1000000ns;
 	auto start = Clock::now();
@@ -111,25 +111,22 @@ void ActiveVibrationControl()
 
 		//y_adjusted = pid.getOutput(e, y);
 
-		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
-		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
-
 		y = 0;
 		if (controller_output.load())
 		{
-			y = gain.load() * -1 * e;
+			y = gain.load() * x;
 			adcdac.set_dac_voltage(y + 1.645, 1); // output anti vibration
 			adcdac.set_dac_voltage(y + 1.645, 2); // output anti vibration
 		}
 
+		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
+		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
+
 		if (log_output.load() && log_count < 100000)
 		{
 			log_count++;
-			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y << "," << y_adjusted << endl;
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << y << "," << e << endl;
 		}
-
-//		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
-//		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
 
 		this_thread::sleep_until(next);
 	}
