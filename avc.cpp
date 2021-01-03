@@ -31,6 +31,7 @@ using nanoseconds = std::chrono::nanoseconds;
 std::atomic<bool> read_input(true);
 std::atomic<bool> log_output(false);
 std::atomic<bool> controller_output(false);
+std::atomic<bool> polarity(true);
 
 void ReadUserInput()
 {
@@ -49,6 +50,9 @@ void ReadUserInput()
 			break;
 		case 'o':
 			controller_output.store(!controller_output.load());
+			break;
+		case 'i':
+			polarity.store(!polarity.load());
 			break;
 		}
 	}
@@ -99,11 +103,18 @@ void ActiveVibrationControl()
 		x_biased = adcdac.read_adc_voltage(2, 0); //Get biased input engine vibration
 
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
-		y = x*-2;
+
+		y = x;
+
+		if (polarity.load())
+		{
+			y = y * -1;
+		}
 
 		y_adjusted = pid.getOutput(e, y);
-		
-		if (controller_output.load()) {
+
+		if (controller_output.load())
+		{
 			adcdac.set_dac_voltage(y + 1.645, 1); // output anti vibration
 			adcdac.set_dac_voltage(y + 1.645, 2); // output anti vibration
 		}
