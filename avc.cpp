@@ -65,7 +65,7 @@ void ActiveVibrationControl()
 	float x;
 	float e = 0;
 	float y;
-	float y_adjusted;
+	float y_adjusted = 0;
 	int log_count = 0;
 
 	ADCDACPi adcdac;
@@ -104,14 +104,14 @@ void ActiveVibrationControl()
 
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
 
-		y = x;
+		y = 0.5 * x;
 
 		if (polarity.load())
 		{
 			y = y * -1;
 		}
 
-		y_adjusted = pid.getOutput(e, y);
+		//y_adjusted = pid.getOutput(e, y);
 
 		if (controller_output.load())
 		{
