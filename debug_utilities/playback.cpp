@@ -57,8 +57,8 @@ int main(int argc, char **argv)
 		auto next = Clock::now() + full_delay;
 		getline(output_file, line);
 		voltage = stof(line);
-		adcdac.set_dac_voltage(voltage, 1); // output anti vibration
-		adcdac.set_dac_voltage(voltage, 2); // output anti vibration
+		adcdac.set_dac_voltage(voltage * 1.4, 1); // output anti vibration
+		adcdac.set_dac_voltage(voltage * 1.4, 2); // output anti vibration
 
 		this_thread::sleep_until(next);
 	}
