@@ -111,6 +111,9 @@ void ActiveVibrationControl()
 
 		//y_adjusted = pid.getOutput(e, y);
 
+		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
+		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
+
 		y = 0;
 		if (controller_output.load())
 		{
@@ -125,8 +128,8 @@ void ActiveVibrationControl()
 			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << e << "," << y << "," << y_adjusted << endl;
 		}
 
-		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
-		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
+//		e_biased = adcdac.read_adc_voltage(1, 0); //Get biased input chassis vibration (error)
+//		e = (e_biased - 1.692);					  //Unbias error signal to obtain original recorded e
 
 		this_thread::sleep_until(next);
 	}
