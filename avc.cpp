@@ -96,7 +96,7 @@ void ActiveVibrationControl()
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Engine Vibration, Anti Vibration Signal, Chassis Vibration (error)" << endl;
+	tmpfile << "Timestamp, Engine Vibration, Anti Vibration Signal, Chassis Vibration (error), polarity" << endl;
 
 	nanoseconds full_delay = 1000000ns;
 	auto start = Clock::now();
@@ -116,12 +116,14 @@ void ActiveVibrationControl()
 		//y_adjusted = pid.getOutput(e, y);
 
 		y = 0;
+		int polarity_val = 1;
 		if (controller_output.load())
 		{
 			y = gain.load() * x;
 			if (polarity.load())
 			{
-				y = y * -1;
+				polarity_val = -1;
+				y = y * polarity_val;
 			}
 			adcdac.set_dac_voltage(y + 1.645, 1); // output anti vibration
 			adcdac.set_dac_voltage(y + 1.645, 2); // output anti vibration
@@ -133,7 +135,7 @@ void ActiveVibrationControl()
 		if (log_output.load() && log_count < 100000)
 		{
 			log_count++;
-			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << y << "," << e << endl;
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << y << "," << e << "," << polarity_val << endl;
 		}
 
 		this_thread::sleep_until(next);
