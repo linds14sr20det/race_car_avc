@@ -31,7 +31,8 @@ using nanoseconds = std::chrono::nanoseconds;
 std::atomic<bool> read_input(true);
 std::atomic<bool> log_output(false);
 std::atomic<bool> controller_output(false);
-std::atomic<float> gain(2.0);
+std::atomic<bool> polarity(false);
+std::atomic<float> gain(1.0);
 
 void ReadUserInput()
 {
@@ -50,6 +51,9 @@ void ReadUserInput()
 			break;
 		case 'o':
 			controller_output.store(!controller_output.load());
+			break;
+		case 'i':
+			polarity.store(!polarity.load());
 			break;
 		case '+':
 			gain.store(gain.load() + 0.5);
@@ -115,6 +119,10 @@ void ActiveVibrationControl()
 		if (controller_output.load())
 		{
 			y = gain.load() * x;
+			if (polarity.load())
+			{
+				y = y * -1;
+			}
 			adcdac.set_dac_voltage(y + 1.645, 1); // output anti vibration
 			adcdac.set_dac_voltage(y + 1.645, 2); // output anti vibration
 		}
