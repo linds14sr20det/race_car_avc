@@ -96,7 +96,7 @@ void ActiveVibrationControl()
 
 	ofstream tmpfile;
 	tmpfile.open("log.txt");
-	tmpfile << "Timestamp, Engine Vibration, Anti Vibration Signal, Chassis Vibration (error), polarity" << endl;
+	tmpfile << "Timestamp, Engine Vibration, Anti Vibration Signal, Chassis Vibration (error)" << endl;
 
 	nanoseconds full_delay = 1000000ns;
 	auto start = Clock::now();
@@ -135,7 +135,7 @@ void ActiveVibrationControl()
 		if (log_output.load() && log_count < 100000)
 		{
 			log_count++;
-			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << y << "," << e << "," << polarity_val << endl;
+			tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << x << "," << y << "," << e << endl;
 		}
 
 		this_thread::sleep_until(next);
