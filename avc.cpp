@@ -99,7 +99,7 @@ void ActiveVibrationControl()
 		x_biased = adcdac.read_adc_voltage(2, 0); //Get biased input engine vibration
 
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
-		y = x * -1;
+		y = x;
 
 		y_adjusted = pid.getOutput(e, y);
 		
