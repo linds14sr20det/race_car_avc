@@ -52,18 +52,6 @@ void ReadUserInput()
 
 void ActiveVibrationControl()
 {
-	// //Define constants
-	// int N = 25;		//Filter length
-	// float mu = 25; //Define LMS step-size
-
-	// //Define 'for' loop counters
-	// int k = 0; //Stored reference sample counter
-	// int i = 0; //Convolution counter
-
-	// //Vectors, to implement matrix multiplication
-	// float w[25];		//Adaptive filter coefficients
-	// float x_window[25]; //Define stored x values used in convolution
-
 	float x_biased;
 	float e_biased;
 	float x;
@@ -106,10 +94,10 @@ void ActiveVibrationControl()
 		//Preliminary signals
 		x_biased = adcdac.read_adc_voltage(2, 0); //Get biased input engine vibration
 
-		x = x * 0.7 + (x_biased - 1.704) * 0.3; //Unbias reference signal to obtain original recorded x
+		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
 		y = x * -1;
 
-		y_adjusted = pid.getOutput(e, y);
+		y_adjusted = pid.getOutput(y - e, y);
 
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 1); // output anti vibration
 		adcdac.set_dac_voltage(y_adjusted + 1.645, 2); // output anti vibration
