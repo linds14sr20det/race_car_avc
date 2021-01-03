@@ -31,7 +31,6 @@ using nanoseconds = std::chrono::nanoseconds;
 std::atomic<bool> read_input(true);
 std::atomic<bool> log_output(false);
 std::atomic<bool> controller_output(false);
-std::atomic<bool> polarity(true);
 
 void ReadUserInput()
 {
@@ -50,9 +49,6 @@ void ReadUserInput()
 			break;
 		case 'o':
 			controller_output.store(!controller_output.load());
-			break;
-		case 'i':
-			polarity.store(!polarity.load());
 			break;
 		}
 	}
@@ -104,14 +100,7 @@ void ActiveVibrationControl()
 
 		x = (x_biased - 1.704); //Unbias reference signal to obtain original recorded x
 
-		y = x;
-
-		y_adjusted = 0;
-		if (polarity.load())
-		{
-			y_adjusted = 1;
-			y = y * -1;
-		}
+		y = 2 * x;
 
 		//y_adjusted = pid.getOutput(e, y);
 
