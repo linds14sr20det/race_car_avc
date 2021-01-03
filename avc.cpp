@@ -31,7 +31,7 @@ using nanoseconds = std::chrono::nanoseconds;
 std::atomic<bool> read_input(true);
 std::atomic<bool> log_output(false);
 std::atomic<bool> controller_output(false);
-std::atomic<float> gain(1.0);
+std::atomic<float> gain(2.0);
 
 void ReadUserInput()
 {
