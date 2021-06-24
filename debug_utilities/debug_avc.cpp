@@ -71,45 +71,30 @@ void ReadAdc()
 
 	adcdac.set_dac_gain(2); // set the DAC gain to 2 which will give a max voltage of 3.3V
 
-	ofstream tmpfile;
-	tmpfile.open("debug_log.txt");
-	tmpfile << "Timestamp, Engine Raw, Chassis Raw, Output" << endl;
+	nanoseconds full_delay = 2000000ns;
 
-	nanoseconds full_delay = 1000000ns;
-
-	int i = 0;
 	float engine_vibration;	 // input voltage data buffer
-	float chassis_vibration; // input voltage data buffer
 	float Y;
-	float amplitude_weight = 1.5;
 
-	auto start = Clock::now();
 	while (read_input.load())
 	{
-		i++;
-		if (i < 100000)
-		{
-			break;
-		}
 		//We need to have a steady sample rate so we can draw conclusions about the time series
 		//We are going to sample at 1000Hz.
 		//1/1000=0.001=1000 microseconds
 		auto next = Clock::now() + full_delay;
 
-		engine_vibration = adcdac.read_adc_voltage(1, 0);  // Get the input voltage
-		chassis_vibration = adcdac.read_adc_voltage(2, 0); // Get the "error" input voltage
+		engine_vibration = adcdac.read_adc_voltage(2, 0);  // Get the input voltage
 		Y = 1.68;
 		if (output_dac.load())
 		{
-			Y = ((engine_vibration - 1.69) * -1 * amplitude_weight) + 1.69;
+			Y = ((engine_vibration - 1.69) * -1 * 2.7) + 1.69;
 			adcdac.set_dac_voltage(Y, 1); // output anti vibration
+			adcdac.set_dac_voltage(Y, 2); // output anti vibration
 		}
-		tmpfile << std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count() << "," << engine_vibration << "," << chassis_vibration << "," << Y << endl;
 
 		this_thread::sleep_until(next);
 	}
 
-	tmpfile.close();
 	adcdac.close_adc();
 	adcdac.close_dac();
 }
